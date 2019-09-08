@@ -28,18 +28,13 @@ class Window(QtWidgets.QMainWindow):
         self._images = list(filter(lambda s: s.endswith(IMG_FORMATS), files))
         self._img_iter = iter(self._images)
         
-        # Init image view
-        img = next(self._img_iter)
-        self._cur_img_name = img
-        
+        # Init image view        
         self._name_label = QtWidgets.QLabel(self)
-        self._name_label.setText(img)
         self._name_label.setAlignment(Qt.AlignCenter)    
         
-        pixmap = QtGui.QPixmap(img).scaled(*IMG_VIEW_SIZE, QtCore.Qt.KeepAspectRatio)
         self._img_label = QtWidgets.QLabel(self)
-        self._img_label.setPixmap(pixmap)
-        self._img_label.setAlignment(Qt.AlignCenter)        
+        self._img_label.setAlignment(Qt.AlignCenter) 
+        self.onNextClick()
         
         # Init buttons
         self._path_line = QtWidgets.QLineEdit(self)
@@ -120,4 +115,4 @@ if __name__ == '__main__':
     window = Window()
     window.show()
     sys.exit(app.exec_())
-    
+        
