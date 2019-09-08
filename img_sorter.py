@@ -3,12 +3,14 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import *
 from PyQt5 import QtGui
+from PyQt5.QtWidgets import QFileDialog
 import os
 import shutil
 from functools import partial
 
 IMG_FORMATS = (".jpg", ".jpeg", ".png")
 IMG_VIEW_SIZE = (640, 480)
+MINIMAL_SIZE_POLICY = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
 def _build_path(folders, filename):
     return "./{}/{}".format(folders, filename)
@@ -18,15 +20,14 @@ class Window(QtWidgets.QMainWindow):
         super(Window, self).__init__(parent)
                         
         self.resize(*IMG_VIEW_SIZE)
-        self.setWindowTitle("Image Sorter")
+        short_dir_name = os.path.basename(os.getcwd())
+        self.setWindowTitle("Image Sorter" + " (.../{})".format(short_dir_name))
         
         self._paths_btns = set()
 
         # Get images in current folder
         #files = [s.encode("utf-8") for s in os.listdir()]
-        files = os.listdir()
-        self._images = list(filter(lambda s: s.endswith(IMG_FORMATS), files))
-        self._img_iter = iter(self._images)
+        self.imageIteratorInit()
         
         # Init image view        
         self._name_label = QtWidgets.QLabel(self)
@@ -37,6 +38,16 @@ class Window(QtWidgets.QMainWindow):
         self.onNextClick()
         
         # Init buttons
+        # (upper layout)
+        change_dir_btn = QtWidgets.QPushButton('Change dir...', self)
+        change_dir_btn.setSizePolicy(MINIMAL_SIZE_POLICY)
+        change_dir_btn.clicked.connect(self.onDirChange)
+        
+        upper_btn_layout = QtWidgets.QHBoxLayout()
+        upper_btn_layout.setAlignment(Qt.AlignLeft)        
+        upper_btn_layout.addWidget(change_dir_btn)        
+        
+        # (lower layout)
         self._path_line = QtWidgets.QLineEdit(self)
         self._path_line.setPlaceholderText("Relative or absolute path")
         
@@ -54,17 +65,25 @@ class Window(QtWidgets.QMainWindow):
         
         # Init layouts
         vlayout = QtWidgets.QVBoxLayout()
+        vlayout.addLayout(upper_btn_layout)
+        
         vlayout.addWidget(self._name_label)
         vlayout.addWidget(self._img_label)
+        
         vlayout.addWidget(self._path_line)
         vlayout.addLayout(btn_layout)
+        
         vlayout.addLayout(self._path_btns_lyt)
         
         wdg = QtWidgets.QWidget()
         wdg.setLayout(vlayout)
         
         self.setCentralWidget(wdg)
-        
+    
+    def imageIteratorInit(self):
+        files = os.listdir()
+        self._images = list(filter(lambda s: s.endswith(IMG_FORMATS), files))
+        self._img_iter = iter(self._images)
     
     def onMoveClick(self, checked, arg_path=None):        
         new_path = self._path_line.text()
@@ -106,6 +125,13 @@ class Window(QtWidgets.QMainWindow):
         except StopIteration:
             self._img_label.setText("No More Images!")
             self._name_label.setText("")
+        
+    def onDirChange(self):
+        new_dir = str(QFileDialog.getExistingDirectory(self, "Select Working Directory"))
+        os.chdir(new_dir)
+        self.setWindowTitle("Image Sorter" + " (.../{})".format(os.path.basename(new_dir)))
+        self.imageIteratorInit()
+        self.onNextClick()
     
 
 if __name__ == '__main__':
