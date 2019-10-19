@@ -4,9 +4,14 @@ from PyQt5.QtWidgets import QFrame
 from PyQt5.QtCore import *
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QCompleter
+from PyQt5.QtCore import QStringListModel
 import os
 import shutil
 from functools import partial
+
+# TODO: do something with relative paths when changing directory
+# TODO: there is some problems with filenames encoding (non-standard symbols in name)
 
 IMG_FORMATS = (".jpg", ".jpeg", ".png")
 IMG_VIEW_SIZE = (640, 480)
@@ -14,6 +19,12 @@ MINIMAL_SIZE_POLICY = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidge
 
 def _build_path(folders, filename):
     return "./{}/{}".format(folders, filename)
+
+def get_folders(_folder=""):    
+    _folder = "./" + _folder + "/" if _folder else "./"
+    files = os.listdir(_folder)
+    folders = list(filter(lambda s: os.path.isdir(_folder+s), files))
+    return folders
 
 class Window(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
@@ -49,7 +60,15 @@ class Window(QtWidgets.QMainWindow):
         
         # (lower layout)
         self._path_line = QtWidgets.QLineEdit(self)
-        self._path_line.setPlaceholderText("Relative or absolute path")
+        self._path_line.setPlaceholderText("Relative or absolute path")        
+        
+        completer = QCompleter()
+        self._path_line.setCompleter(completer)
+        self._model = QStringListModel()
+        completer.setModel(self._model)
+        completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self._model.setStringList(get_folders())
+        self._path_line.textEdited.connect(self.onPathChanged)
         
         move_btn = QtWidgets.QPushButton('MOVE FILE', self)
         move_btn.clicked.connect(self.onMoveClick)
@@ -132,6 +151,14 @@ class Window(QtWidgets.QMainWindow):
         self.setWindowTitle("Image Sorter" + " (.../{})".format(os.path.basename(new_dir)))
         self.imageIteratorInit()
         self.onNextClick()
+        self._model.setStringList(get_folders())
+        
+    def onPathChanged(self, _path):
+        dirname = os.path.dirname(_path)     
+        folders = get_folders(dirname)       
+        dirname = dirname+"/" if dirname and not dirname.endswith("/") else dirname
+        folders = [dirname+s for s in folders]       
+        self._model.setStringList(folders)
     
 
 if __name__ == '__main__':
